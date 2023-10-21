@@ -1,12 +1,13 @@
 import winston, { format } from 'winston';
 const { timestamp, combine, json, errors, colorize, printf } = format;
 
-
-
+/**
+ * default settings for the log formatting
+ */
 const DEFAULT = {
     component: 'App Message',
-    color: 'bold gray',
     console: {
+        color: 'bold gray',
         // used to align the outputs with blank spaces
         lenghts: {
             level: 5,
@@ -38,15 +39,17 @@ const DEFAULT = {
             printable.level = printable.level.padEnd( DEFAULT.console.lenghts.level );
             printable.component = printable.component.padEnd( DEFAULT.console.lenghts.component );
             
+            // get the the console colorizer
+            const colorizer = Formats.getConsoleClorizer();
 
             // avoid colorizing the info and leave it with the default system color
             if( level != 'info' ) {
-                printable.message = Formats.colorizer.colorize( level, printable.message );
-                printable.level = Formats.colorizer.colorize( level, printable.level );
+                printable.message = colorizer.colorize( level, printable.message );
+                printable.level = colorizer.colorize( level, printable.level );
             }
             
             // color the app components to differentiate them
-            printable.component = Formats.colorizer.colorize( component, printable.component);
+            printable.component = colorizer.colorize( component, printable.component);
 
             return `[${ printable.timestamp }] [${ printable.component }] [${ printable.level }] ${ printable.message }`;
         })
@@ -54,22 +57,30 @@ const DEFAULT = {
 }
 
 export default class Formats {
-    public static colorizer: winston.Logform.Colorizer;
+    private static consoleColorizer: winston.Logform.Colorizer;
 
-    public static getColorizer(){
-        if( this.colorizer ) {
-            return this.colorizer;
+    /**
+     * Get static instance of winston colorizer
+     * @returns colorizer
+     */
+    public static getConsoleClorizer(): winston.Logform.Colorizer {
+        if( this.consoleColorizer ) {
+            return this.consoleColorizer;
         }
-        this.colorizer = colorize();
+        this.consoleColorizer = colorize();
         
         const defaultColor: winston.Logform.Colors = {};
-        defaultColor[ DEFAULT.component ] = DEFAULT.color;
+        defaultColor[ DEFAULT.component ] = DEFAULT.console.color;
 
-        this.colorizer.addColors( defaultColor );
+        this.consoleColorizer.addColors( defaultColor );
 
-        return this.colorizer;
+        return this.consoleColorizer;
     }
 
+    /**
+     * Add components or parts of the application to idenify the logging areas
+     * @param listOfComponents - array of name of components
+     */
     public static addComponentsToColorize( listOfComponents: string[] ) {
         const colorsMap: winston.Logform.Colors = {};
         
@@ -83,11 +94,15 @@ export default class Formats {
             colorsMap[ component ] = defaultColors[ colorIdx ];
         }
         
-        this.colorizer.addColors( colorsMap );
+        this.consoleColorizer.addColors( colorsMap );
     }
 
-    public static getDefaultFormat() {
-        this.colorizer = this.getColorizer();
+    /**
+     * Get the winston formatter with the default settings
+     * @returns winston formatter
+     */
+    public static getDefaultConsoleFormat(): winston.Logform.Format {
+        this.consoleColorizer = this.getConsoleClorizer();
         
         return combine(
             timestamp({
