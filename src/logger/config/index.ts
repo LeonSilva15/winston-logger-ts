@@ -2,6 +2,8 @@ import Formats from './formats';
 import Transports from './transports';
 
 const defaults: {[ key: string ]: any } = {
+    globalId: 'app',
+    level: 'info',
     levels: {
         error: 0,
         warn: 1,
