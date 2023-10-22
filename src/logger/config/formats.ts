@@ -49,7 +49,12 @@ const DEFAULT = {
             }
             
             // color the app components to differentiate them
-            printable.component = colorizer.colorize( component, printable.component);
+            // handle unkown components
+            let colorIdx = DEFAULT.component;
+            if( component in Formats.colorsMap ) {
+                colorIdx = component;
+            }
+            printable.component = colorizer.colorize( colorIdx, printable.component);
 
             return `[${ printable.timestamp }] [${ printable.component }] [${ printable.level }] ${ printable.message }`;
         })
@@ -58,6 +63,7 @@ const DEFAULT = {
 
 export default class Formats {
     private static consoleColorizer: winston.Logform.Colorizer;
+    public static colorsMap: winston.Logform.Colors = {};
 
     /**
      * Get static instance of winston colorizer
@@ -82,8 +88,6 @@ export default class Formats {
      * @param listOfComponents - array of name of components
      */
     public static addComponentsToColorize( listOfComponents: string[] ) {
-        const colorsMap: winston.Logform.Colors = {};
-        
         const defaultColors = DEFAULT.console.colors;
         const colorsLenght = defaultColors.length;
         
@@ -91,10 +95,10 @@ export default class Formats {
             const component = listOfComponents[ componentIdx ];
             const colorIdx = Number( componentIdx ) % colorsLenght;
 
-            colorsMap[ component ] = defaultColors[ colorIdx ];
+            this.colorsMap[ component ] = defaultColors[ colorIdx ];
         }
         
-        this.consoleColorizer.addColors( colorsMap );
+        this.consoleColorizer.addColors( this.colorsMap );
     }
 
     /**
