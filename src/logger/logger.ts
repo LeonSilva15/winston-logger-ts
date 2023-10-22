@@ -1,26 +1,123 @@
 import winston, { createLogger } from 'winston';
+import { defaults } from './config';
 
-export default class Logger {
-    private static globalLogger: winston.Logger = createLogger({});
-    // public static loggers = new Map<string, winston.Logger>();
-    // public static loggers = winston.loggers;
-    public static loggers = new winston.Container();
+type LoggerSettings = {
+    id: string;
+    parentGlobalId?: string;
+    options?: winston.LoggerOptions;
+};
 
-    public static add( id: string, options?: winston.LoggerOptions | undefined ) {
-        // this.globalLogger.profile('')
-        this.loggers.add( id,  );
+export default interface Logger {
+    // [name: string]: any;
+    error( msg: string ): void;
+    warn( msg: string ): void;
+    info( msg: string ): void;
+    debug( msg: string ): void;
+    trace( msg: string ): void;
+}
+
+// winston.Logger is problematic to extend
+export default class Logger implements Logger {
+    private static loggers = new Map<string, Logger>();
+    private static globalLogger: Logger = new Logger();
+    public static get( composedId: string ): Logger | undefined {
+        return Logger.loggers.get( composedId );
     }
-
-    public static get( id?: string | undefined ) {
-        if( id ) {
-            return this.loggers.get( id );
+    private logger: winston.Logger;
+    private globalId: string;
+    private id: string;
+    private children: Map<string, Logger>;
+    
+    public constructor( settings?: LoggerSettings ) {
+        if( settings?.options ) {
+            this.logger = createLogger( settings.options );
+        } else {
+            this.logger = createLogger({
+                levels: defaults.levels,
+                level: defaults.level,
+            });
+    
+            // Add the default transports here
+            for( const transport of defaults.transportsList ) {
+                defaults.Transports.addDefaultTransports( transport, this.logger );
+            }
         }
-        return this.globalLogger;
+        this.children = new Map<string, Logger>();
+        this.id = settings?.id || defaults.globalId;
+
+        let globalId = defaults.globalId;
+
+        // parentGlobalId will be sent only if the id was sent aswell
+        if( settings?.parentGlobalId ) {
+            if( Logger.loggers.has( settings.parentGlobalId ) ) {
+                globalId = settings.parentGlobalId;
+            } else {
+                Logger.globalLogger.error( `Parent logger ${ settings.parentGlobalId } not found.` );
+                Logger.globalLogger.warn( `Logger ${ settings.id } will be attached to global logger.` );
+            }
+        }
+
+        if( settings?.id ) {
+            this.globalId = globalId + ':' + settings?.id;
+        } else {
+            if( Logger.loggers.has( globalId ) ) {
+                Logger.globalLogger.warn( 'Global logger overwritten.' );
+            }
+            this.globalId = defaults.globalId;
+        }
+
+        // Add the logger to the global map using its global id
+        Logger.loggers.set( this.globalId, this );
     }
 
-    public static remove( id: string ) {
-        const logger = this.loggers.get( id );
-        this.loggers.get( id ).removeAllListeners();
-        this.loggers.close( id );
+    public getChildren( id?: string | undefined ): Logger | Map<string, Logger> | undefined {
+        if( id ) {
+            if( this.children.has( id ) ) {
+                return this.children.get( id );
+            }
+            this.logger.error( `Child logger "${ id }" not found.` );
+            return;
+        }
+        return this.children
+    }
+
+    public child( id: string, options?: winston.LoggerOptions ): Logger | undefined {
+        if( this.children.has( id ) ) {
+            this.logger.warn( `Child logger "${ id }" already exists.` );
+            return this.children.get( id );
+        }
+        const logger = new Logger({
+            id: id,
+            parentGlobalId: this.id,
+            options: options
+        });
+
+        this.children.set( id, logger );
+        return logger;
+    }
+
+    /**
+     * Winston Logger is problematic to be extended, but we can remap the logging methods
+     */
+    private log( level: string, msg: string ) {
+        this.logger[ level as keyof winston.Logger ]({
+            message: msg,
+            component: this.id,
+        });
+    }
+    public error( msg: string ) {
+        this.log( 'error', msg );
+    }
+    public warn( msg: string ) {
+        this.log( 'warn', msg );
+    }
+    public info( msg: string ) {
+        this.log( 'info', msg );
+    }
+    public debug( msg: string ) {
+        this.log( 'debug', msg );
+    }
+    public trace( msg: string ) {
+        this.log( 'trace', msg );
     }
 }
