@@ -9,7 +9,13 @@ const defaults: {[ key: string ]: any } = {
         debug: 3,
         trace: 4
     },
-    level: 'info',
+    levelColors: {
+        error: 'red',
+        warn: 'yellow',
+        info: 'gray',
+        debug: 'blue',
+        trace: 'cyan',
+    },
     console: {
         format: Formats.getDefaultConsoleFormat(),
     },
@@ -23,5 +29,7 @@ const defaults: {[ key: string ]: any } = {
     Transports: Transports,
     Formats: Formats,
 };
+
+Formats.addLevelsToColorize( defaults.levelColors );
 
 export { defaults };

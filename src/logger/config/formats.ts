@@ -102,6 +102,16 @@ export default class Formats {
     }
 
     /**
+     * Set the colors on the levels
+     * @param levelColors map of colors
+     */
+    public static addLevelsToColorize( levelColors: winston.Logform.Colors ) {
+        Object.assign( this.colorsMap, levelColors );
+        
+        this.consoleColorizer.addColors( levelColors );
+    }
+
+    /**
      * Get the winston formatter with the default settings
      * @returns winston formatter
      */
