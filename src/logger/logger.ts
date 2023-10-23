@@ -26,11 +26,16 @@ export default class Logger implements Logger {
         }
         return this.globalLogger;
     }
+    
     private logger: winston.Logger;
     private globalId: string;
     private id: string;
     private children: Map<string, Logger>;
     
+    /**
+     * constructor
+     * @param settings - LoggerSettings object
+     */
     public constructor( settings?: LoggerSettings ) {
         if( settings?.options ) {
             this.logger = createLogger( settings.options );
@@ -73,6 +78,11 @@ export default class Logger implements Logger {
         Logger.loggers.set( this.globalId, this );
     }
 
+    /**
+     * Return the childen list of logger or a specific child logger
+     * @param id? - specific child logger id
+     * @returns 
+     */
     public getChildren( id?: string | undefined ): Logger | Map<string, Logger> | undefined {
         if( id ) {
             if( this.children.has( id ) ) {
@@ -84,6 +94,13 @@ export default class Logger implements Logger {
         return this.children
     }
 
+    /**
+     * Create child logger and add it to both the global loggers and to the children
+     * loggers in the parent logger
+     * @param id - local logger id
+     * @param options? - winston.LoggerOptions
+     * @returns new Logger
+     */
     public child( id: string, options?: winston.LoggerOptions ): Logger | undefined {
         if( this.children.has( id ) ) {
             this.logger.warn( `Child logger "${ id }" already exists.` );
