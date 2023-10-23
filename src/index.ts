@@ -15,7 +15,7 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.listen(port, () => {
-  logger.info( 'Succesfully created new worksheet.' )
+  logger.info( `Server is Fire at http://localhost:${port}` )
 });
 
 logger.info( 'Sending info message.' )
