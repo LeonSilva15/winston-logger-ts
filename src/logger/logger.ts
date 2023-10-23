@@ -20,8 +20,11 @@ export default interface Logger {
 export default class Logger implements Logger {
     private static loggers = new Map<string, Logger>();
     private static globalLogger: Logger = new Logger();
-    public static get( composedId: string ): Logger | undefined {
-        return Logger.loggers.get( composedId );
+    public static get( composedId?: string ): Logger | undefined {
+        if( composedId ) {
+            return Logger.loggers.get( composedId );
+        }
+        return this.globalLogger;
     }
     private logger: winston.Logger;
     private globalId: string;
